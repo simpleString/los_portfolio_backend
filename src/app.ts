@@ -5,6 +5,7 @@ import fs from "fs/promises";
 
 const app = express();
 
+
 app.use(cors({ origin: "http://localhost:3000" }));
 app.use(express.static("public"));
 app.use(express.urlencoded({ extended: true }));
@@ -15,17 +16,20 @@ interface IPostData {
   img: string;
   postUrl: string;
   title: string;
+  text: string;
 }
 
 interface IGameData {
   img: string;
   postUrl: string;
   title: string;
+  text: string;
   type: "topical" | "old" | "completed";
 }
 
 app.get("/posts", async (req, res) => {
-  const result = await fs.readdir("public/posts");
+  try {
+    const result = await fs.readdir("public/posts");
   const postData: IPostData[] = await Promise.all(
     result.map(async (item) => {
       return {
@@ -34,16 +38,24 @@ app.get("/posts", async (req, res) => {
         title: (
           await fs.readFile(`./public/posts/${item}/Title.txt`)
         ).toString(),
+        text: (
+          await fs.readFile(`./public/posts/${item}/Text.txt`)
+        ).toString(),
       };
     })
   );
   console.log(postData);
 
   res.json(postData);
+  } catch (error) {
+    res.status(500)
+  }
+  
 });
 
 app.get("/games", async (req, res) => {
-  const result = await fs.readdir("public/games");
+  try {
+    const result = await fs.readdir("public/games");
   const data: IGameData[] = [];
   await Promise.all(
     result.map(async (item) => {
@@ -56,6 +68,9 @@ app.get("/games", async (req, res) => {
             title: (
               await fs.readFile(`./public/games/${item}/${innerItem}/Title.txt`)
             ).toString(),
+            text: (
+              await fs.readFile(`./public/games/${item}/${innerItem}/Text.txt`)
+            ).toString(),
             type: item as any,
           });
         })
@@ -65,19 +80,25 @@ app.get("/games", async (req, res) => {
   console.log(data);
 
   res.json(data);
+  } catch (error) {
+    res.status(500);
+  }
+  
 });
 
-app.get("/games/topical:slug", async (req, res) => {
+app.get("/games/topical/:slug", async (req, res) => {
   const { slug } = req.params;
   const result = (
     await fs.readFile(`public/games/topical/${slug}/Title.txt`)
   ).toString();
+  console.log("im here");
+  
   console.log(result);
 
   res.json({ data: result });
 });
 
-app.get("/games/completed:slug", async (req, res) => {
+app.get("/games/completed/:slug", async (req, res) => {
   const { slug } = req.params;
   const result = (
     await fs.readFile(`public/games/completed/${slug}/Title.txt`)
@@ -87,7 +108,7 @@ app.get("/games/completed:slug", async (req, res) => {
   res.json({ data: result });
 });
 
-app.get("/games/old:slug", async (req, res) => {
+app.get("/games/old/:slug", async (req, res) => {
   const { slug } = req.params;
   const result = (
     await fs.readFile(`public/games/old/${slug}/Title.txt`)
